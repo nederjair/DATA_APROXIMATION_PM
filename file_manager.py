@@ -98,19 +98,18 @@ class FileManager:
             print('\nthere are no shelve files in the directory:\n ' + str(origin_folder) + '\nending program...')
 
     @staticmethod
-    def unzip_folder(folder_path):
-        zip_file_path = askopenfilename(initialdir=folder_path, title='Select Zip File',
-                                        filetypes=[("zip files", "*.zip")])
+    def unzip_to_folder(zip_file_path):
         zip_file_path = Path(zip_file_path)
         # file name without extension
         zip_file_name = zip_file_path.stem
-        unzipped_file_path = folder_path / zip_file_name
+        folder_path = zip_file_path.parent
+        unzipped_folder_path = folder_path / zip_file_name
         zip_object = zipfile.ZipFile(zip_file_path)
         # extract all the files from the folder
-        zip_object.extractall(unzipped_file_path)
-        print('all files from ', str(zip_file_path), 'extracted')
+        zip_object.extractall(unzipped_folder_path)
+        print('all files from ', str(zip_file_path), 'extracted in ', str(unzipped_folder_path))
         print('Done.')
-        return unzipped_file_path
+        return unzipped_folder_path
 
 '''    def get_program_status(self, folder_path):
         if self.check_shelve_file(folder_path, 'status'):

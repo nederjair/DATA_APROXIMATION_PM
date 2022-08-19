@@ -20,7 +20,7 @@ my_fun5 = MyFun(method=lambda z: div(1.0, z), s_method=lambda z: s_div('1', z))
 my_fun6 = MyFun(method=lambda z: exponential(z), s_method=lambda z: s_exponential(z))
 my_fun7 = MyFun(method=lambda z: nat_log(z), s_method=lambda z: s_nat_log(z))
 my_fun8 = MyFun(method=lambda z: np.tanh(0.5*z), s_method=lambda z: 'tanh(0.5*' + z + ')')
-my_fun9 = MyFun(method=lambda z: heaviside, s_method=lambda z: '1 if ' + z + '>=0; 0 else')
+my_fun9 = MyFun(method=lambda z: heaviside(z), s_method=lambda z: '1 if ' + z + '>=0; 0 else')
 my_fun10 = MyFun(method=lambda z: sign(z), s_method=lambda z: s_sign(z))
 my_fun11 = MyFun(method=lambda z: np.cos(z), s_method=lambda z: 'cos('+z+')')
 my_fun12 = MyFun(method=lambda z: np.sin(z), s_method=lambda z: 'sin('+z+')')
@@ -57,12 +57,12 @@ my_fun32 = MyFun(method=lambda z1, z2: np.min([z1, z2]),
                  s_method=lambda z1, z2: 'min(' + z1 + ',' + z2 + ')')
 my_fun33 = MyFun(method=lambda z1, z2: add(z1, z2) - mult(z1, z2),
                  s_method=lambda z1, z2: s_add(z1, z2) + '-' + s_mult(z1, z2))
-my_fun34 = MyFun(method=lambda z1, z2: mult(sign(sum(z1, z2)), square_root(add(square(z1), square(z2)))),
+my_fun34 = MyFun(method=lambda z1, z2: mult(sign(add(z1, z2)), square_root(add(square(z1), square(z2)))),
                  s_method=lambda z1, z2: s_mult(s_sign(s_add(z1, z2)),
                                                 s_square_root(s_add(s_square(z1), s_square(z2)))))
-my_fun35 = MyFun(method=lambda z1, z2: mult(sign(sum(z1, z2)), sum(abs(z1), abs(z2))),
+my_fun35 = MyFun(method=lambda z1, z2: mult(sign(add(z1, z2)), add(abs(z1), abs(z2))),
                  s_method=lambda z1, z2: s_mult(s_sign(s_add(z1, z2)), s_add('|' + z1 + '|', '|' + z2 + '|')))
-my_fun36 = MyFun(method=lambda z1, z2: mult(sign(sum(z1, z2)), mult(abs(z1), abs(z2))),
+my_fun36 = MyFun(method=lambda z1, z2: mult(sign(add(z1, z2)), mult(abs(z1), abs(z2))),
                  s_method=lambda z1, z2: s_mult(s_sign(s_add(z1, z2)), s_mult('|' + z1 + '|', '|' + z2 + '|')))
 my_fun37 = MyFun(method=lambda z1, z2, z3: fun37(z1, z2, z3),
                  s_method=lambda z1, z2, z3: z2 + ' if ' + z1 + '>0;  ' + z3 + 'else')
@@ -87,7 +87,7 @@ function_approximation_list = [
     my_fun29,
     my_fun30
 ]
-synthesis_funtion_list = [
+synthesis_function_list = [
     my_fun1,
     my_fun2,
     my_fun3,

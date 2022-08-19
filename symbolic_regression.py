@@ -1,6 +1,4 @@
 from population import Population
-from my_functions import function_approximation_list as function_list
-from target import Target
 from elite import Elite
 from file_manager import FileManager
 import numpy as np
@@ -9,9 +7,8 @@ import shelve
 
 
 class SymbolicRegression:
-    def __init__(self, max_arg_count, pm_row_count, x_count, u_count, q_count, q_min, q_max,
-                 sv_mat_row_count, func_count, u_min, u_max, x_min, x_max, samples, target_function, pop_size,
-                 elite_size):
+    def __init__(self, max_arg_count, pm_row_count, x_count, u_count, q_count, q_min, q_max, sv_mat_row_count,
+                 func_count, u_min, u_max, pop_size, elite_size, x_data, y_target):
         # parameters for population
         self.max_arg_count = max_arg_count
         self.pm_row_count = pm_row_count  # minimum value: 2*x_count - 1
@@ -25,10 +22,10 @@ class SymbolicRegression:
         self.func_count = func_count
         self.u_min = u_min
         self.u_max = u_max
-        self.x_min = x_min
-        self.x_max = x_max
-        self.samples = samples
-        self.target_function = target_function
+
+        self.x_data = x_data
+        self.y_target = y_target
+        self.samples = x_data.shape[1]
 
         self.pm_permitted_rows = [k for k in range(2 * self.x_count - 1, self.pm_row_count + 1)]
         self.pm_permitted_cols = [k for k in range(1, self.pm_col_count)]
@@ -36,11 +33,6 @@ class SymbolicRegression:
         self.pop = Population(self.max_arg_count, self.pm_row_count, self.pm_col_count, self.x_count, self.u_count,
                               self.q_count, self.sv_mat_row_count, self.func_count, self.u_min, self.u_max, self.q_min,
                               self.q_max, self.pm_permitted_rows, self.pm_permitted_cols)
-
-        # target object
-        self.target = Target(x_count, x_min, x_max, samples)
-        self.target.randomly_generate_x()
-        self.target.set_y(target_function(self.target.x))
 
         # #######################file manager################################################## #
         self.fm = FileManager()
@@ -70,15 +62,15 @@ class SymbolicRegression:
         self.fm.check_and_create_folder(self.live_reg_data_folder_path)
         self.fm.check_and_create_folder(self.history_data_folder_path)
         # backup history results
-        self.fm.backup_to_zip(self.live_reg_data_folder_path, self.history_data_folder_path)
+        self.fm.backup_all_shelve_files_to_zip_files(self.live_reg_data_folder_path, self.history_data_folder_path)
         # delete saved results from the live folder
         self.fm.delete_shelf_files(self.live_reg_data_folder_path)
 
     def create_target_shelf_file_and_status_file(self):
         # creating the target shelf file
         target_shelf_file = shelve.open(str(self.live_reg_data_folder_path / Path('target')))
-        target_shelf_file['x_data'] = self.target.x
-        target_shelf_file['y_target'] = self.target.y
+        target_shelf_file['x_data'] = self.x_data
+        target_shelf_file['y_target'] = self.y_target
         target_shelf_file['y_target_expression'] = '0.5*cos(x1) + sin(x1)'
         target_shelf_file.close()
         # checking or creating the program status file
@@ -98,7 +90,7 @@ class SymbolicRegression:
         # initial population generation
         pop_sv, pop_q = self.pop.encode(self.pop_size)
         # initial population scores calculation
-        scores = self.pop.calculate_scores(pop_sv, pop_q, self.target)
+        scores = self.pop.calculate_scores(pop_sv, pop_q, self.x_data, self.y_target, self.samples)
         # initial generation probabilities calculation
         probabilities = self.pop.probability_calculation_method(scores)
         return pop_sv, pop_q, scores, probabilities
@@ -112,7 +104,7 @@ class SymbolicRegression:
         best_q = pop_q[best_index]
         best_score = scores[best_index]
         best_expression = self.pop.calculate_expressions(best_sv_mat, best_q)
-        best_y = self.pop.calculate_y(best_sv_mat, best_q, self.target)
+        best_y = self.pop.calculate_y(best_sv_mat, best_q, self.x_data, self.samples)
         return best_sv_mat, best_q, best_score, best_y, best_expression
     
     def save_best_solution(self, best_y, best_expression, best_score, current_generation):
@@ -135,7 +127,7 @@ class SymbolicRegression:
                   elite_expressions, current_generation, max_generations, reset_max_attempts):
 
         self.initial_backup()
-        self.create_target_shelf_file_and_status_file()
+        # self.create_target_shelf_file_and_status_file()
         # best calculation
         best_sv_mat, best_q, best_score, best_y, best_expression = self.best_solution_calculation(pop_sv, pop_q, scores)
 
@@ -155,11 +147,11 @@ class SymbolicRegression:
             if current_attempt < reset_max_attempts:
                 # crossover process
                 pop_sv_new_crossed, pop_q_new_crossed, scores_new_crossed = \
-                    self.pop.crossover_cycle(pop_sv, pop_q, self.target, probabilities, self.children_return_count,
+                    self.pop.crossover_cycle(pop_sv, pop_q, self.x_data, self.y_target, self.samples, probabilities, self.children_return_count,
                                              self.crossover_count)
                 # mutation process
                 pop_sv_new_mutated, pop_q_new_mutated, scores_new_mutated = \
-                    self.pop.mutation_cycle(pop_sv, pop_q, self.target, probabilities, self.mutation_count)
+                    self.pop.mutation_cycle(pop_sv, pop_q, self.x_data, self.y_target, self.samples, probabilities, self.mutation_count)
                 # new population assembly
                 pop_sv_new = np.concatenate((pop_sv_new_crossed, pop_sv_new_mutated), axis=0)
                 pop_q_new = np.concatenate((pop_q_new_crossed, pop_q_new_mutated), axis=0)
@@ -217,7 +209,7 @@ class SymbolicRegression:
                       'times stuck=', current_attempt)
 
         # backup history results
-        self.fm.backup_to_zip(self.live_reg_data_folder_path, self.history_data_folder_path)
+        self.fm.backup_all_shelve_files_to_zip_files(self.live_reg_data_folder_path, self.history_data_folder_path)
         # delete saved results from the live folder
         self.fm.delete_shelf_files(self.live_reg_data_folder_path)
         print('\n Main Loop Done.')

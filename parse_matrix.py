@@ -1,6 +1,6 @@
 import numpy as np
 from inspect import signature
-from my_functions import function_approximation_list as function_list
+from my_functions import synthesis_function_list as function_list
 from basic_functions import clamp
 
 
@@ -98,7 +98,6 @@ class PM:
                     if 0 <= arg_index < self.argument_count:
                         current_arg = self.argument_vector[arg_index]
                     else:
-                        myx = 1
                         print('bad argument index')
                         print('argument index = ', arg_index)
                         print('argument index limits = [0, ' + str(self.argument_count) + ']')

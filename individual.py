@@ -31,20 +31,20 @@ class Individual:
         q = self.coefficients_object.encode()
         return sv_mat, q
 
-    def calculate_y(self, sv_mat, q, target_object):
+    def calculate_y(self, sv_mat, q, x, samples):
         mat = self.apply_to_basic_solution(sv_mat)
-        y = np.zeros(target_object.samples)
-        for sample in range(target_object.samples):
-            y[sample] = self.pm_object.decode(target_object.x[:, sample], q, mat)
+        y = np.zeros(samples)
+        for sample in range(samples):
+            y[sample] = self.pm_object.decode(x[:, sample], q, mat)
         return y
 
     def calculate_y_symbol(self, sv_mat, q):
         mat = self.apply_to_basic_solution(sv_mat)
         return self.pm_object.decode_symbol(q, mat)
 
-    def calc_score(self, sv_mat, q, target_object):
-        y = self.calculate_y(sv_mat, q, target_object)
-        return np.sum(np.abs(y - target_object.y))
+    def calc_score(self, sv_mat, q, x, y_target, samples):
+        y = self.calculate_y(sv_mat, q, x, samples)
+        return np.sum(np.abs(y - y_target))
 
     def apply_to_basic_solution(self, sv_mat):
         basic_solution_temp = self.pm_object.basic_solution.copy()

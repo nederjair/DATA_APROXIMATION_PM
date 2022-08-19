@@ -1,14 +1,9 @@
 from file_manager import FileManager
+from my_functions import synthesis_function_list as function_list
 import shelve
 from pathlib import Path
 import numpy as np
-import zipfile
 from tkinter.filedialog import askopenfilename
-from tkinter import Entry
-from tkinter import LabelFrame
-from tkinter import Frame
-from tkinter import Button
-from tkinter import Toplevel
 from tkinter import messagebox
 
 from tkinter import CENTER
@@ -16,7 +11,6 @@ from tkinter import DISABLED
 from tkinter import NORMAL
 from symbolic_regression import SymbolicRegression
 from random import uniform
-from my_functions import synthesis_funtion_list
 import customtkinter
 customtkinter.set_appearance_mode("dark")  # Modes: system (default), light, dark
 customtkinter.set_default_color_theme("dark-blue")  # Themes: blue (default), dark-blue, green
@@ -29,6 +23,7 @@ class Gui:
         self.live_reg_data_folder_path = self.current_path / Path('history_regression_data')
         self.history_data_folder_path = self.current_path / Path('live_regression_data')
         self.optimization_data_folder_path = self.current_path / Path('optimization')
+        self.unzipped_optimization_data_folder_path = None
         # ######################################MAIN WINDOW##################################
         # create the main window
         self.root = self.create_main_window()
@@ -68,7 +63,8 @@ class Gui:
         return main_frame
         
     def create_output_frame(self, parent_frame):
-        self.configure_widget(parent_frame, row_list=[0, 1], col_list=[0], row_weight_list=[500, 1], col_weight_list=[1])
+        self.configure_widget(parent_frame, row_list=[0, 1], col_list=[0], row_weight_list=[500, 1],
+                              col_weight_list=[1])
         output_frame = customtkinter.CTkFrame(parent_frame, bg='#5F5F9E')
         output_frame.grid(row=0, column=0, sticky='nsew')
         return output_frame
@@ -297,6 +293,7 @@ class Gui:
             self.start_from_scratch_button.configure(state=DISABLED)
             self.resume_button.configure(state=DISABLED)
             print('optimization file selected properly')
+            self.unzipped_optimization_data_folder_path = self.fm.unzip_to_folder(optimization_zip_file_path)
             self.create_fill_show_secondary_window()
 
     def create_fill_show_secondary_window(self):
@@ -314,13 +311,6 @@ class Gui:
                                                           pm_row_count_entry, pop_size_entry, elite_size_entry,
                                                           max_gens_entry, reset_gens_entry))
 
-    def on_closing(self, window):
-        if messagebox.askokcancel("Quit",
-                                  "You did not save the parameters of the simulation\nAre you sure, you want to quit?"):
-            self.start_from_scratch_button.configure(state=NORMAL)
-            self.resume_button.configure(state=NORMAL)
-            window.destroy()
-
     def start(self, top_window, q_count_entry, q_min_entry, q_max_entry, sv_mat_row_count_entry, pm_row_count_entry,
               pop_size_entry, elite_size_entry, max_gens_entry, reset_gens_entry):
         # get simulation parameters from the user
@@ -330,18 +320,24 @@ class Gui:
                                            reset_gens_entry)
         top_window.destroy()
         # get target parameters
-        func_count = len(synthesis_funtion_list)
+        func_count = len(function_list)
         max_arg_count = 3
-        x_count, u_count, u_min, u_max, x_data, y_target = self.get_data_set()
+        x_count, u_count, u_min, u_max, x_data, y_target = self.get_optimization_data()
         sr = SymbolicRegression(max_arg_count, pm_row_count, x_count, u_count, q_count, q_min, q_max, sv_mat_row_count,
-                                func_count, u_min, u_max, pop_size, elite_size)
-        print(q_count)
+                                func_count, u_min, u_max, pop_size, elite_size, x_data, y_target)
 
+        sr.start_from_scratch(max_gens, reset_gens)
+        print('Done.')
 
+    def on_closing(self, window):
+        if messagebox.askokcancel("Quit",
+                                  "You did not save the parameters of the simulation\nAre you sure, you want to quit?"):
+            self.start_from_scratch_button.configure(state=NORMAL)
+            self.resume_button.configure(state=NORMAL)
+            window.destroy()
 
-    def get_optimization_data(self, unzipped_data_set_file_path):
-        self.unzip_data_set()
-        reg_shelf_file = shelve.open(str(self.optimization_data_folder_path / Path('optimization_data')))
+    def get_optimization_data(self):
+        reg_shelf_file = shelve.open(str(self.unzipped_optimization_data_folder_path / Path('optimization')))
         x_count = reg_shelf_file['x_count']
         u_count = reg_shelf_file['u_count']
         u_min = reg_shelf_file['u_min']
@@ -354,24 +350,16 @@ class Gui:
     @staticmethod
     def get_simulation_parameters(q_count_entry, q_min_entry, q_max_entry, sv_mat_row_count_entry, pm_row_count_entry,
                                   pop_size_entry, elite_size_entry, max_gens_entry, reset_gens_entry):
-        q_count = q_count_entry.get()
-        q_min = q_min_entry.get()
-        q_max = q_max_entry.get()
-        sv_mat_row_count = sv_mat_row_count_entry.get()
-        pm_row_count = pm_row_count_entry.get()
-        pop_size = pop_size_entry.get()
-        elite_size = elite_size_entry.get()
-        max_gens = max_gens_entry.get()
-        reset_gens = reset_gens_entry.get()
+        q_count = int(q_count_entry.get())
+        q_min = int(q_min_entry.get())
+        q_max = int(q_max_entry.get())
+        sv_mat_row_count = int(sv_mat_row_count_entry.get())
+        pm_row_count = int(pm_row_count_entry.get())
+        pop_size = int(pop_size_entry.get())
+        elite_size = int(elite_size_entry.get())
+        max_gens = int(max_gens_entry.get())
+        reset_gens = int(reset_gens_entry.get())
         return q_count, q_min, q_max, sv_mat_row_count, pm_row_count, pop_size, elite_size, max_gens, reset_gens
-
-    def create_window_for_parameters_of_the_simulation(self):
-        # self.artificially_create_source_data()
-        top = Toplevel()
-        top.rowconfigure(0, weight=1)
-        top.columnconfigure(0, weight=1)
-        self.create_top_window_frames(top)
-        # return top
 
     def artificially_create_optimization_data(self):
         self.fm.check_and_create_folder(self.optimization_data_folder_path)
@@ -379,7 +367,7 @@ class Gui:
         y_target = np.sin(x[0]) + np.cos(x[1]) - 0.5*x[2]
         reg_shelf_file = shelve.open(str(self.optimization_data_folder_path / Path('optimization')))
         reg_shelf_file['x_count'] = 3
-        reg_shelf_file['u_count'] = 2
+        reg_shelf_file['u_count'] = 1
         reg_shelf_file['u_min'] = -10
         reg_shelf_file['u_max'] = 10
         reg_shelf_file['x_data'] = x
