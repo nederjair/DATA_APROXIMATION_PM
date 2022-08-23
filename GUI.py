@@ -33,7 +33,7 @@ class Gui:
         # create the output frame
         self.output_frame = self.create_output_frame(self.main_frame)
         # create output label frames
-        self.create_output_label_frames(self.output_frame)
+        self.generation_label = self.create_output_label_frames(self.output_frame)
 
         # create button frame
         self.button_frame = self.create_button_frame(self.main_frame)
@@ -100,6 +100,8 @@ class Gui:
 
         self.configure_widget(parent_frame, row_list=[0, 1, 2], col_list=[0, 1], row_weight_list=[1, 1, 1],
                               col_weight_list=[1, 1])
+
+        return generation_label
 
     @staticmethod
     def create_button_frame(parent_frame):
@@ -315,7 +317,7 @@ class Gui:
     def start(self, top_window, q_count_entry, q_min_entry, q_max_entry, sv_mat_row_count_entry, pm_row_count_entry,
               pop_size_entry, elite_size_entry, max_gens_entry, reset_gens_entry):
         # get simulation parameters from the user
-        q_count, q_min, q_max, sv_mat_row_count, pm_row_count, pop_size, elite_size, max_gens, reset_gens = \
+        q_count, q_min, q_max, sv_mat_row_count, pm_row_count, pop_size, elite_size, max_gens, reset_max_attempts = \
             self.get_simulation_parameters(q_count_entry, q_min_entry, q_max_entry, sv_mat_row_count_entry,
                                            pm_row_count_entry, pop_size_entry, elite_size_entry, max_gens_entry,
                                            reset_gens_entry)
@@ -327,8 +329,54 @@ class Gui:
         sr = SymbolicRegression(max_arg_count, pm_row_count, x_count, u_count, q_count, q_min, q_max, sv_mat_row_count,
                                 func_count, u_min, u_max, pop_size, elite_size, x_data, y_target)
 
-        sr.start_from_scratch(max_gens, reset_gens)
-        print('Done.')
+        # check resume and optimization folders
+        sr.check_folders()
+        # elite population initialization
+        elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions = sr.initialize_elite_solutions()
+        # initial population generation, score and probabilities calculation
+        pop_sv, pop_q, scores, probabilities = sr.initial_population_generation_and_score_calculation()
+        # create the resume file
+        sr.create_resume_file(elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions, pop_sv, pop_q, scores,
+                              probabilities)
+        # best individual calculation
+        best_sv_mat, best_q, best_score, best_y, best_expression = sr.best_solution_calculation(pop_sv, pop_q, scores)
+
+        # stack in the elite population and save the elite information in disk
+        elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions = \
+            sr.elite.stack(best_sv_mat, best_q, best_score, best_y, best_expression, elite_svs, elite_qs, elite_scores,
+                           elite_ys, elite_expressions)
+
+        current_attempt = 0
+        temp_best_score = best_score
+        print('current generation = initial, best score = ', best_score, 'best historic score = ', elite_scores[0],
+              'times stuck=', current_attempt)
+        # starts the genetic algorithm main loop
+        current_generation = 0
+        self.generation_label.configure(text='Generation: ' + str(current_generation))
+
+        self.main_loop(sr, pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys,
+                       elite_expressions, current_generation, max_gens, reset_max_attempts, current_attempt,
+                       temp_best_score)
+
+    def main_loop(self, sr, pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys,
+                  elite_expressions, current_generation, max_gens, reset_max_attempts, current_attempt,
+                  temp_best_score):
+        if current_generation <= max_gens:
+            pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions, \
+            current_generation, current_attempt, temp_best_score = sr.main_loop(pop_sv, pop_q, scores, probabilities,
+                                                                                elite_svs, elite_qs, elite_scores,
+                                                                                elite_ys, elite_expressions,
+                                                                                current_generation, reset_max_attempts,
+                                                                                current_attempt, temp_best_score)
+            self.generation_label.configure(text='Generation: ' + str(current_generation-1))
+            self.root.after(10, lambda: self.main_loop(sr, pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs,
+                                                      elite_scores, elite_ys, elite_expressions, current_generation,
+                                                      max_gens, reset_max_attempts, current_attempt, temp_best_score))
+        else:
+            print('main loop finished, reached max gens')
+            print('saving resume data to a zip file')
+            sr.backup_resume_data_to_zip()
+            print('Program Done.')
 
     def on_closing(self, window):
         if messagebox.askokcancel("Quit",
