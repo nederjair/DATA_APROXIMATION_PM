@@ -42,6 +42,6 @@ class Elite:
                 elite_scores[j + 2:] = elite_scores_temp
                 elite_ys[j + 2:] = elite_ys_temp
                 elite_expressions[j + 2:] = elite_expressions_temp
-                self.save(elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions)
+                # self.save(elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions)
 
         return elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions

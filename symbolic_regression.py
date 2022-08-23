@@ -4,6 +4,8 @@ from file_manager import FileManager
 import numpy as np
 from pathlib import Path
 import shelve
+from random import uniform
+from datetime import datetime
 
 
 class SymbolicRegression:
@@ -39,6 +41,8 @@ class SymbolicRegression:
         self.current_path = Path.cwd()
         self.live_reg_data_folder_path = self.current_path / Path('live_regression_data')
         self.history_data_folder_path = self.current_path / Path('history_regression_data')
+        self.resume_data_folder_path = self.current_path / Path('resume')
+        self.optimization_data_folder_path = self.current_path / Path('optimization')
 
         # #######################population################################################## #
         self.pop_size = pop_size
@@ -59,12 +63,21 @@ class SymbolicRegression:
 
     def initial_backup(self):
         # check and create folders for the live and history results
-        self.fm.check_and_create_folder(self.live_reg_data_folder_path)
-        self.fm.check_and_create_folder(self.history_data_folder_path)
+        self.fm.check_and_create_folder(self.resume_data_folder_path)
+        self.fm.check_and_create_folder(self.optimization_data_folder_path)
         # backup history results
-        self.fm.backup_all_shelve_files_to_zip_files(self.live_reg_data_folder_path, self.history_data_folder_path)
+        # self.fm.backup_all_shelve_files_to_zip_files(self.live_reg_data_folder_path, self.history_data_folder_path)
         # delete saved results from the live folder
-        self.fm.delete_shelf_files(self.live_reg_data_folder_path)
+        # self.fm.delete_shelf_files(self.live_reg_data_folder_path)
+
+    def check_folders(self):
+        # check and create folders for the resume and optimization results
+        self.fm.check_and_create_folder(self.resume_data_folder_path)
+        self.fm.check_and_create_folder(self.optimization_data_folder_path)
+        # backup history results
+        # self.fm.backup_all_shelve_files_to_zip_files(self.live_reg_data_folder_path, self.history_data_folder_path)
+        # delete saved results from the live folder
+        # self.fm.delete_shelf_files(self.live_reg_data_folder_path)
 
     def create_target_shelf_file_and_status_file(self):
         # creating the target shelf file
@@ -122,11 +135,35 @@ class SymbolicRegression:
         reg_shelf_file['scores'] = scores
         reg_shelf_file['probabilities'] = probabilities
         reg_shelf_file.close()
+
+    def create_resume_file(self, elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions, pop_sv, pop_q, scores,
+                           probabilities):
+        reg_shelf_file_path = self.resume_data_folder_path / Path('resume')
+        print('Resume File Path: ', reg_shelf_file_path)
+        reg_shelf_file = shelve.open(str(reg_shelf_file_path))
+        reg_shelf_file['x_count'] = self.x_count
+        reg_shelf_file['u_count'] = self.u_count
+        reg_shelf_file['u_min'] = self.u_min
+        reg_shelf_file['u_max'] = self.u_max
+        reg_shelf_file['x_data'] = self.x_data
+        reg_shelf_file['y_target'] = self.y_target
+
+        reg_shelf_file['elite_svs'] = elite_svs
+        reg_shelf_file['elite_qs'] = elite_qs
+        reg_shelf_file['elite_scores'] = elite_scores
+        reg_shelf_file['elite_ys'] = elite_ys
+        reg_shelf_file['elite_expressions'] = elite_expressions
+
+        reg_shelf_file['pop_sv'] = pop_sv
+        reg_shelf_file['pop_q'] = pop_q
+        reg_shelf_file['scores'] = scores
+        reg_shelf_file['probabilities'] = probabilities
+        reg_shelf_file.close()
     
     def main_loop(self, pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys,
                   elite_expressions, current_generation, max_generations, reset_max_attempts):
 
-        self.initial_backup()
+        # self.initial_backup()
         # self.create_target_shelf_file_and_status_file()
         # best calculation
         best_sv_mat, best_q, best_score, best_y, best_expression = self.best_solution_calculation(pop_sv, pop_q, scores)
@@ -135,8 +172,8 @@ class SymbolicRegression:
         elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions = \
             self.elite.stack(best_sv_mat, best_q, best_score, best_y, best_expression, elite_svs, elite_qs,
                              elite_scores, elite_ys, elite_expressions)
-        self.save_best_solution(best_y, best_expression, best_score, current_generation)
-        self.save_last_generation(pop_sv, pop_q, scores, probabilities)
+        # self.save_best_solution(best_y, best_expression, best_score, current_generation)
+        # self.save_last_generation(pop_sv, pop_q, scores, probabilities)
 
         current_attempt = 0
         temp_best_score = best_score
@@ -166,8 +203,8 @@ class SymbolicRegression:
                 elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions = \
                     self.elite.stack(best_sv_mat, best_q, best_score, best_y, best_expression, elite_svs, elite_qs, 
                                      elite_scores, elite_ys, elite_expressions)
-                self.save_best_solution(best_y, best_expression, best_score, current_generation)
-                self.save_last_generation(pop_sv, pop_q, scores, probabilities)
+                # self.save_best_solution(best_y, best_expression, best_score, current_generation)
+                # self.save_last_generation(pop_sv, pop_q, scores, probabilities)
                 if best_score < temp_best_score:
                     temp_best_score = best_score
                     current_attempt = 0
@@ -197,8 +234,8 @@ class SymbolicRegression:
                 elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions = \
                     self.elite.stack(best_sv_mat, best_q, best_score, best_y, best_expression, elite_svs, elite_qs,
                                      elite_scores, elite_ys, elite_expressions)
-                self.save_best_solution(best_y, best_expression, best_score, current_generation)
-                self.save_last_generation(pop_sv, pop_q, scores, probabilities)
+                # self.save_best_solution(best_y, best_expression, best_score, current_generation)
+                # self.save_last_generation(pop_sv, pop_q, scores, probabilities)
 
                 current_attempt = 0
                 temp_best_score = best_score
@@ -208,18 +245,23 @@ class SymbolicRegression:
                       elite_scores[0],
                       'times stuck=', current_attempt)
 
-        # backup history results
-        self.fm.backup_all_shelve_files_to_zip_files(self.live_reg_data_folder_path, self.history_data_folder_path)
-        # delete saved results from the live folder
-        self.fm.delete_shelf_files(self.live_reg_data_folder_path)
+        # backup resume results
+        today_date = datetime.today().strftime('%Y-%m-%d')  # get the today's date
+        basename = 'resume_' + today_date + '_'
+        self.fm.backup_all_shelve_files_to_zip_files(self.resume_data_folder_path, self.resume_data_folder_path, basename)
+        # delete current resume results after backup
+        self.fm.delete_shelf_files(self.resume_data_folder_path)
         print('\n Main Loop Done.')
 
     def start_from_scratch(self, max_generations, reset_max_attempts):
+        self.check_folders()
         # elite population initialization
         elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions = self.initialize_elite_solutions()
         # initial population generation and score and probabilities calculation
         pop_sv, pop_q, scores, probabilities = self.initial_population_generation_and_score_calculation()
         current_generation = 0
+        self.create_resume_file(elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions, pop_sv, pop_q, scores,
+                                probabilities)
         self.main_loop(pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys,
                        elite_expressions, current_generation, max_generations, reset_max_attempts)
         print('\n Program Done.')
@@ -233,3 +275,36 @@ class SymbolicRegression:
         self.main_loop(pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys,
                        elite_expressions, current_generation, max_generations, reset_max_attempts)
         print('\n Program Done.')
+
+    def save_resume_data(self):
+        self.fm.check_and_create_folder(self.resume_data_folder_path)
+        x = np.array([[uniform(-10, 10) for _ in range(50)] for _ in range(3)])
+        y_target = np.sin(x[0]) + np.cos(x[1]) - 0.5 * x[2]
+
+        # elite solutions
+        elite_size = 3
+        elite_svs = np.zeros((elite_size, self.sv_mat_row_count, 3), dtype=int)
+        elite_qs = np.zeros((elite_size, self.q_count))
+        elite_ys = np.zeros((elite_size, self.samples))
+        elite_scores = np.full(elite_size, np.inf)
+        elite_expressions = ["0" for _ in range(elite_size)]
+
+        # pop_sv, pop_q, scores, probabilities = self.initial_population_generation_and_score_calculation()
+
+        reg_shelf_file = shelve.open(str(self.resume_data_folder_path / Path('resume')))
+        reg_shelf_file['x_count'] = 3
+        reg_shelf_file['u_count'] = 1
+        reg_shelf_file['u_min'] = -10
+        reg_shelf_file['u_max'] = 10
+        reg_shelf_file['x_data'] = x
+        reg_shelf_file['y_target'] = y_target
+
+        reg_shelf_file['elite_svs'] = elite_svs
+        reg_shelf_file['elite_qs'] = elite_qs
+        reg_shelf_file['elite_scores'] = elite_scores
+        reg_shelf_file['elite_ys'] = elite_ys
+        reg_shelf_file['elite_expressions'] = elite_expressions
+        reg_shelf_file.close()
+        self.fm.backup_all_shelve_files_to_zip_files(self.resume_data_folder_path,
+                                                     self.resume_data_folder_path)
+        self.fm.delete_shelf_files(self.resume_data_folder_path)

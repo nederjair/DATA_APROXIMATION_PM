@@ -39,7 +39,7 @@ class FileManager:
         print('\ngetting shelve files.....')
         dat_files, bak_files, dir_files = self.get_shelve_files(folder)
 
-        if len(dat_files) > 1 and len(bak_files) > 1 and len(dir_files) > 1:
+        if len(dat_files) > 0 and len(bak_files) > 0 and len(dir_files) > 0:
             print('\nshelve files found, deleting them...')
             for dat_file in dat_files:
                 os.unlink(dat_file)
@@ -65,7 +65,7 @@ class FileManager:
             else:
                 return file_name
 
-    def backup_all_shelve_files_to_zip_files(self, origin_folder, destination_folder):
+    def backup_all_shelve_files_to_zip_files(self, origin_folder, destination_folder, basename):
         print('\n---------backup_to_zip-------------------------')
         # check if there are shelf files in the origin folder
         print('\n getting shelve files.....')
@@ -73,11 +73,11 @@ class FileManager:
         # check there is more than 1 shelve file
         if len(dat_files) > 0 and len(bak_files) > 0 and len(dir_files) > 0:
             print('\nthere are shelve files in the directory:\n ' + str(origin_folder) + '\ncopying them.....')
-            today_date = datetime.today().strftime('%Y-%m-%d')  # get the today's date
+
             # name the zipfile correctly
             # get the number correctly
             zip_filename = \
-                self.get_unused_file_name(folder=destination_folder, basename=today_date + '_', extension='.zip')
+                self.get_unused_file_name(folder=destination_folder, basename=basename, extension='.zip')
             # create the zipfile
             print(f'Creating {zip_filename}...')
             backup_zip = zipfile.ZipFile(zip_filename, 'w')

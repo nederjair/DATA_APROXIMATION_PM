@@ -23,6 +23,7 @@ class Gui:
         self.live_reg_data_folder_path = self.current_path / Path('history_regression_data')
         self.history_data_folder_path = self.current_path / Path('live_regression_data')
         self.optimization_data_folder_path = self.current_path / Path('optimization')
+        self.resume_data_folder_path = self.current_path / Path('resume')
         self.unzipped_optimization_data_folder_path = None
         # ######################################MAIN WINDOW##################################
         # create the main window
@@ -235,7 +236,7 @@ class Gui:
         max_gens_label.grid(row=0, column=0, sticky='nsew')
         # max_gens entry
         max_gens_entry = customtkinter.CTkEntry(max_gens_frame)
-        max_gens_entry.insert(0, str(50))
+        max_gens_entry.insert(0, str(5))
         max_gens_entry.grid(row=0, column=1, sticky='nsew')
         self.configure_widget(max_gens_frame, row_list=[0], col_list=[0, 1], row_weight_list=[1],
                               col_weight_list=[1, 1])
