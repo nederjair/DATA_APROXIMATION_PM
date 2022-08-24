@@ -16,7 +16,8 @@ class Elite:
         reg_shelf_file['elite_expressions'] = elite_expressions
         reg_shelf_file.close()
 
-    def stack(self, sv_mat, q, score, y, expression,  elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions):
+    @staticmethod
+    def stack(sv_mat, q, score, y, expression,  elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions):
         size, sv_mat_row_count, sv_mat_col_count = elite_svs.shape
         if score in elite_scores:
             return elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions
@@ -42,6 +43,4 @@ class Elite:
                 elite_scores[j + 2:] = elite_scores_temp
                 elite_ys[j + 2:] = elite_ys_temp
                 elite_expressions[j + 2:] = elite_expressions_temp
-                # self.save(elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions)
-
         return elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions

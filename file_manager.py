@@ -98,39 +98,10 @@ class FileManager:
             print('\nthere are no shelve files in the directory:\n ' + str(origin_folder) + '\nending program...')
 
     @staticmethod
-    def unzip_to_folder(zip_file_path):
+    def unzip_to_folder(zip_file_path, folder_to_unzip):
         zip_file_path = Path(zip_file_path)
-        # file name without extension
-        zip_file_name = zip_file_path.stem
-        folder_path = zip_file_path.parent
-        unzipped_folder_path = folder_path / zip_file_name
         zip_object = zipfile.ZipFile(zip_file_path)
         # extract all the files from the folder
-        zip_object.extractall(unzipped_folder_path)
-        print('all files from ', str(zip_file_path), 'extracted in ', str(unzipped_folder_path))
+        zip_object.extractall(folder_to_unzip)
+        print('all files from ', str(zip_file_path), 'extracted in ', str(folder_to_unzip))
         print('Done.')
-        return unzipped_folder_path
-
-'''    def get_program_status(self, folder_path):
-        if self.check_shelve_file(folder_path, 'status'):
-            status_shelf_file = shelve.open(str(folder_path / Path('status')))
-            program_running = status_shelf_file['running']
-            status_shelf_file.close()
-            return program_running
-        else:
-            program_running = False
-            return program_running'''
-
-
-'''def set_program_status(self, folder_path, value):
-    if self.check_shelve_file(folder_path, 'status'):
-        status_shelf_file = shelve.open(str(folder_path / Path('status')))
-        status_shelf_file['running'] = value
-        status_shelf_file.close()
-    else:
-        print('\nFile does not exist, creating one')
-        status_shelf_file = shelve.open(str(folder_path / Path('status')))
-        status_shelf_file['running'] = value
-        status_shelf_file.close()
-    print('\nvalue settled')
-    print('\nDone.')'''

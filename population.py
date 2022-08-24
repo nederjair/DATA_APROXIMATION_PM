@@ -73,11 +73,12 @@ class Population:
         offsprings_sv, offsprings_q = crossover(parent_1, parent_2, parent_q_1, parent_q_2)
         offsprings_scores = self.calculate_scores(offsprings_sv, offsprings_q, x, y_target, samples)
         offsprings_sorted_indexes = np.argsort(offsprings_scores)
-        return offsprings_sv[offsprings_sorted_indexes[0:children_return_count]],\
-               offsprings_q[offsprings_sorted_indexes[0:children_return_count]],\
-               offsprings_scores[offsprings_sorted_indexes[0:children_return_count]]
+        return (offsprings_sv[offsprings_sorted_indexes[0:children_return_count]],
+                offsprings_q[offsprings_sorted_indexes[0:children_return_count]],
+                offsprings_scores[offsprings_sorted_indexes[0:children_return_count]])
 
-    def crossover_cycle(self, pop_sv, pop_q, x, y_target, samples, probabilities, children_return_count, crossover_count):
+    def crossover_cycle(self, pop_sv, pop_q, x, y_target, samples, probabilities, children_return_count,
+                        crossover_count):
         pop_new_size = crossover_count*children_return_count
         pop_sv_new = np.zeros((pop_new_size, self.sv_mat_row_count, 3), dtype=int)
         pop_q_new = np.zeros((pop_new_size, self.q_count))
@@ -89,8 +90,9 @@ class Population:
             parent_2 = pop_sv[parent_index_2]
             parent_q_1 = pop_q[parent_index_1]
             parent_q_2 = pop_q[parent_index_2]
-            offsprings_sv, offsprings_q, offsprings_scores = self.crossover(x, y_target, samples, parent_1, parent_2, parent_q_1,
-                                                                            parent_q_2, children_return_count)
+            offsprings_sv, offsprings_q, offsprings_scores = self.crossover(x, y_target, samples, parent_1, parent_2,
+                                                                            parent_q_1, parent_q_2,
+                                                                            children_return_count)
             pop_sv_new[k:k + children_return_count] = offsprings_sv
             pop_q_new[k:k + children_return_count] = offsprings_q
             pop_scores_new[k:k + children_return_count] = offsprings_scores
@@ -133,26 +135,3 @@ class Population:
                 self.selection_and_mutation(pop_sv, pop_q, x, y_target, samples, probabilities)
             k += 1
         return pop_sv_new, pop_q_new, scores_new
-
-    '''def generate_calculate_save(self, pop_size, x, y_target, samples, elite, elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions):
-        # initial population generation
-        pop_sv, pop_q = self.encode(pop_size)
-        # initial population scores calculation
-        scores = self.calculate_scores(pop_sv, pop_q, x, y_target, samples)
-        # initial generation probabilities calculation
-        probabilities = self.probability_calculation_method(scores)
-        # population scores sorting
-        sorted_indexes = np.argsort(scores)
-        # best calculation
-        best_index = sorted_indexes[0:1]
-        best_sv_mat = pop_sv[best_index]
-        best_q = pop_q[best_index]
-        best_score = scores[best_index]
-        best_expression = self.calculate_expressions(best_sv_mat, best_q)
-        best_y = self.calculate_y(best_sv_mat, best_q, x, samples)
-
-        # stack in the elite population
-        elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions = \
-            elite.stack(best_sv_mat, best_q, best_score, best_y, best_expression,
-                        elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions)
-        return'''
