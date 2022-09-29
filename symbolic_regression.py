@@ -25,6 +25,8 @@ class SymbolicRegression:
         self.u_min = u_min
         self.u_max = u_max
 
+        self.stop_flag = False
+
         self.x_data = x_data
         self.y_target = y_target
         self.samples = x_data.shape[1]
@@ -89,7 +91,7 @@ class SymbolicRegression:
         # checking or creating the program status file
         self.fm.set_program_status(self.live_reg_data_folder_path, True)
         # ########################################################################################## #
-        
+
     def initialize_elite_solutions(self):
         # elite solutions
         elite_svs = np.zeros((self.elite_size, self.sv_mat_row_count, 3), dtype=int)
@@ -98,7 +100,7 @@ class SymbolicRegression:
         elite_scores = np.full(self.elite_size, np.inf)
         elite_expressions = ["0" for _ in range(self.elite_size)]
         return elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions
-    
+
     def initial_population_generation_and_score_calculation(self):
         # initial population generation
         pop_sv, pop_q = self.pop.encode(self.pop_size)
@@ -107,7 +109,7 @@ class SymbolicRegression:
         # initial generation probabilities calculation
         probabilities = self.pop.probability_calculation_method(scores)
         return pop_sv, pop_q, scores, probabilities
-    
+
     def best_solution_calculation(self, pop_sv, pop_q, scores):
         # population scores sorting
         sorted_indexes = np.argsort(scores)
@@ -119,7 +121,7 @@ class SymbolicRegression:
         best_expression = self.pop.calculate_expressions(best_sv_mat, best_q)
         best_y = self.pop.calculate_y(best_sv_mat, best_q, self.x_data, self.samples)
         return best_sv_mat, best_q, best_score, best_y, best_expression
-    
+
     def save_best_solution(self, best_y, best_expression, best_score, current_generation):
         # save the best solutions of every generation
         reg_shelf_file = shelve.open(str(self.live_reg_data_folder_path / Path('reg_' + str(current_generation))))
@@ -185,64 +187,71 @@ class SymbolicRegression:
         reg_shelf_file['scores'] = scores
         reg_shelf_file['probabilities'] = probabilities
         reg_shelf_file.close()
-    
+
     def main_loop(self, pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys,
-                  elite_expressions, current_generation, reset_max_attempts, current_attempt, simulation_best_score):
-        if current_attempt < reset_max_attempts:
-            # crossover process
-            pop_sv_new_crossed, pop_q_new_crossed, scores_new_crossed = \
-                self.pop.crossover_cycle(pop_sv, pop_q, self.x_data, self.y_target, self.samples, probabilities,
-                                         self.children_return_count, self.crossover_count)
-            # mutation process
-            pop_sv_new_mutated, pop_q_new_mutated, scores_new_mutated = \
-                self.pop.mutation_cycle(pop_sv, pop_q, self.x_data, self.y_target, self.samples, probabilities,
-                                        self.mutation_count)
-            # new population assembly
-            pop_sv_new = np.concatenate((pop_sv_new_crossed, pop_sv_new_mutated), axis=0)
-            pop_q_new = np.concatenate((pop_q_new_crossed, pop_q_new_mutated), axis=0)
-            scores_new = np.concatenate((scores_new_crossed, scores_new_mutated), axis=0)
-            # new population probabilities calculation
-            probabilities_new = self.pop.probability_calculation_method(scores_new)
-            # best calculation
-            best_sv_mat, best_q, best_score, best_y, best_expression = \
-                self.best_solution_calculation(pop_sv_new, pop_q_new, scores_new)
-            # stack in the elite population and save the elite information in disk
-            elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions = \
-                self.elite.stack(best_sv_mat, best_q, best_score, best_y, best_expression, elite_svs, elite_qs,
-                                 elite_scores, elite_ys, elite_expressions)
-            if best_score < simulation_best_score:
-                simulation_best_score = best_score
-                current_attempt = 0
+                  elite_expressions, current_generation, max_gens, reset_max_attempts, current_attempt,
+                  simulation_best_score):
+        while current_generation < max_gens and not self.stop_flag:
+            if current_attempt < reset_max_attempts:
+                # crossover process
+                pop_sv_new_crossed, pop_q_new_crossed, scores_new_crossed = \
+                    self.pop.crossover_cycle(pop_sv, pop_q, self.x_data, self.y_target, self.samples, probabilities,
+                                             self.children_return_count, self.crossover_count)
+                # mutation process
+                pop_sv_new_mutated, pop_q_new_mutated, scores_new_mutated = \
+                    self.pop.mutation_cycle(pop_sv, pop_q, self.x_data, self.y_target, self.samples, probabilities,
+                                            self.mutation_count)
+                # new population assembly
+                pop_sv_new = np.concatenate((pop_sv_new_crossed, pop_sv_new_mutated), axis=0)
+                pop_q_new = np.concatenate((pop_q_new_crossed, pop_q_new_mutated), axis=0)
+                scores_new = np.concatenate((scores_new_crossed, scores_new_mutated), axis=0)
+                # new population probabilities calculation
+                probabilities_new = self.pop.probability_calculation_method(scores_new)
+                # best calculation
+                best_sv_mat, best_q, best_score, best_y, best_expression = \
+                    self.best_solution_calculation(pop_sv_new, pop_q_new, scores_new)
+                # stack in the elite population and save the elite information in disk
+                elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions = \
+                    self.elite.stack(best_sv_mat, best_q, best_score, best_y, best_expression, elite_svs, elite_qs,
+                                     elite_scores, elite_ys, elite_expressions)
+                if best_score < simulation_best_score:
+                    simulation_best_score = best_score
+                    current_attempt = 0
+                else:
+                    current_attempt += 1
+                print('current generation = ', current_generation,
+                      'best score = ', best_score, 'expression = ', best_expression, 'best historic score = ',
+                      elite_scores[0],
+                      'times stuck=', current_attempt)
+                # passing to the new generation
+                pop_sv = pop_sv_new.copy()
+                pop_q = pop_q_new.copy()
+                probabilities = probabilities_new.copy()
+                current_generation += 1
             else:
-                current_attempt += 1
-            print('current generation = ', current_generation,
-                  'best score = ', best_score, 'expression = ', best_expression, 'best historic score = ',
-                  elite_scores[0],
-                  'times stuck=', current_attempt)
-            # passing to the new generation
-            pop_sv = pop_sv_new.copy()
-            pop_q = pop_q_new.copy()
-            probabilities = probabilities_new.copy()
-            current_generation += 1
-        else:
-            print('reached maximum attempts to reduce the score, restarting the genetic algorithm')
-            # initial population generation and score and probabilities calculation
-            pop_sv, pop_q, scores, probabilities = self.initial_population_generation_and_score_calculation()
-            # best calculation
-            best_sv_mat, best_q, best_score, best_y, best_expression = self.best_solution_calculation(pop_sv, pop_q,
-                                                                                                      scores)
-            # stack in the elite population and save the elite information in disk
-            elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions = \
-                self.elite.stack(best_sv_mat, best_q, best_score, best_y, best_expression, elite_svs, elite_qs,
-                                 elite_scores, elite_ys, elite_expressions)
-            current_attempt = 0
-            simulation_best_score = best_score
-            print('current generation = ', current_generation,
-                  'best score = ', best_score, 'expression = ', best_expression, 'best historic score = ',
-                  elite_scores[0],
-                  'times stuck=', current_attempt)
-        return pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions, \
-               current_generation, current_attempt, simulation_best_score, best_score[0], best_expression[0]
+                print('reached maximum attempts to reduce the score, restarting the genetic algorithm')
+                # initial population generation and score and probabilities calculation
+                pop_sv, pop_q, scores, probabilities = self.initial_population_generation_and_score_calculation()
+                # best calculation
+                best_sv_mat, best_q, best_score, best_y, best_expression = self.best_solution_calculation(pop_sv, pop_q,
+                                                                                                          scores)
+                # stack in the elite population and save the elite information in disk
+                elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions = \
+                    self.elite.stack(best_sv_mat, best_q, best_score, best_y, best_expression, elite_svs, elite_qs,
+                                     elite_scores, elite_ys, elite_expressions)
+                current_attempt = 0
+                simulation_best_score = best_score
+                print('current generation = ', current_generation,
+                      'best score = ', best_score, 'expression = ', best_expression, 'best historic score = ',
+                      elite_scores[0],
+                      'times stuck=', current_attempt)
+
+        print('main loop finished, reached max gens')
+        print('saving resume data to a zip file')
+        self.save_resume_file(elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions, pop_sv, pop_q, scores,
+                              probabilities)
+        self.backup_resume_data_to_zip()
+        print('Program Done.')
 
     def backup_resume_data_to_zip(self):
         # backup resume results
@@ -263,5 +272,3 @@ class SymbolicRegression:
         self.main_loop(pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys,
                        elite_expressions, current_generation, max_generations, reset_max_attempts)
         print('\n Program Done.')
-
-

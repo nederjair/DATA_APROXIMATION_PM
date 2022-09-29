@@ -2,11 +2,12 @@ from file_manager import FileManager
 from my_functions import synthesis_function_list as function_list
 import shelve
 from random import uniform
+import threading
 import numpy as np
 from pathlib import Path
 from tkinter.filedialog import askopenfilename
 from tkinter import messagebox
-
+from time import sleep
 from tkinter import CENTER
 from tkinter import DISABLED
 from tkinter import NORMAL
@@ -26,6 +27,7 @@ class Gui:
         self.resume_data_folder_path = self.current_path / Path('resume')
         self.unzipped_optimization_data_folder_path = None
         self.unzipped_resume_data_folder_path = None
+        self.stop_flag = False
         # ######################################MAIN WINDOW##################################
         # create the main window
         self.root = self.create_main_window()
@@ -110,6 +112,10 @@ class Gui:
         button_frame = customtkinter.CTkFrame(parent_frame)
         button_frame.grid(row=1, column=0, sticky='nsew')
         return button_frame
+    @staticmethod
+    def set_stop_flag_to_true(sr):
+        sr.stop_flag = True
+        print('the stop flag has been settled to true')
 
     def create_buttons(self, parent_frame):
         # button for start from scratch
@@ -123,7 +129,8 @@ class Gui:
         resume_button.grid(row=1, column=0, sticky='nsew', padx=10, pady=10)
 
         # stop button
-        stop_button = customtkinter.CTkButton(parent_frame, text='stop simulation', state=DISABLED)
+        stop_button = customtkinter.CTkButton(parent_frame, text='stop simulation', state=DISABLED,
+                                              command=self.set_stop_flag_to_true)
         stop_button.grid(row=2, column=0, sticky='nsew', padx=10, pady=10)
 
         self.configure_widget(parent_frame, row_list=[0, 1, 2], col_list=[0], row_weight_list=[1, 1, 1],
@@ -434,6 +441,7 @@ class Gui:
               elite_scores[0], 'times stuck=', current_attempt)
         # starts the genetic algorithm main loop
         current_generation = 0
+        self.stop_button.configure(state=NORMAL)
         self.main_loop(sr, pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys,
                        elite_expressions, current_generation, max_gens, reset_max_attempts, current_attempt,
                        simulation_best_score, generation_best_score[0], best_expression[0])
@@ -467,38 +475,26 @@ class Gui:
               elite_scores[0], 'times stuck=', current_attempt)
         # starts the genetic algorithm main loop
         current_generation = 0
-        self.main_loop(sr, pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys,
-                       elite_expressions, current_generation, max_gens, reset_max_attempts, current_attempt,
-                       simulation_best_score, generation_best_score[0], best_expression[0])
+        self.stop_button.configure(state=NORMAL)
+        self.update_user_output(current_generation, generation_best_score, elite_scores[0], best_expression)
+        main_loop_thread = threading.Thread(target=sr.main_loop, args=[pop_sv, pop_q, scores, probabilities,
+                                                                             elite_svs, elite_qs, elite_scores, elite_ys
+                                                                             , elite_expressions, current_generation,
+                                                                             max_gens, reset_max_attempts,
+                                                                             current_attempt, simulation_best_score,
+                                                                       self.stop_flag])
+        # main_loop_thread = threading.Thread(target=self.long_function)
+        main_loop_thread.start()
+        # self.main_loop(main_loop_thread, current_generation, generation_best_score, elite_scores[0], best_expression)
+
+        print('the resume routine has finished')
+        # main_thread.join()
         
     def update_user_output(self, current_generation, generation_best_score, best_historic_score, best_expression):
         self.generation_label.configure(text='Generation: ' + str(current_generation))
         self.score_label.configure(text='Generation Best Score:\n' + str(generation_best_score))
         self.historic_score_label.configure(text='Best Historic Score:\n' + str(best_historic_score))
         self.expression_label.configure(text='Generation Best Expression:\n' + str(best_expression))
-
-    def main_loop(self, sr, pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys,
-                  elite_expressions, current_generation, max_gens, reset_max_attempts, current_attempt,
-                  simulation_best_score, generation_best_score, best_expression):
-        if current_generation <= max_gens:
-            self.update_user_output(current_generation, generation_best_score, elite_scores[0], best_expression)
-            (pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions,
-             current_generation, current_attempt, simulation_best_score, generation_best_score, best_expression) = \
-                sr.main_loop(pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys,
-                             elite_expressions, current_generation, reset_max_attempts, current_attempt,
-                             simulation_best_score)
-
-            self.root.after(10, lambda: self.main_loop(sr, pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs,
-                                                       elite_scores, elite_ys, elite_expressions, current_generation,
-                                                       max_gens, reset_max_attempts, current_attempt,
-                                                       simulation_best_score, generation_best_score, best_expression))
-        else:
-            print('main loop finished, reached max gens')
-            print('saving resume data to a zip file')
-            sr.save_resume_file(elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions, pop_sv, pop_q, scores,
-                                probabilities)
-            sr.backup_resume_data_to_zip()
-            print('Program Done.')
 
     def on_closing(self, window):
         if messagebox.askokcancel("Quit",
