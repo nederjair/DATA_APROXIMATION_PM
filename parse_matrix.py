@@ -30,56 +30,47 @@ class PM:
         self.basic_solution = self.encode_basic()
 
     def encode_basic(self):
-        mat = np.ones((self.pm_row_count, self.pm_col_count), dtype=int)
+        p_mat = np.ones((self.pm_row_count, self.pm_col_count), dtype=int)
         # multiplication index
-        mult_index = 12
+        mult_index = 30
         # addition index
-        add_index = 11
-        xn_index = 1
-        qn_index = self.x_count + 1
+        add_index = 29
+        xi_index = self.x_count + 1
+        qi_index = 1
         save_index = self.x_count + self.q_count + 1
-        for rowIndex in range(self.x_count):
-            mat[rowIndex][0] = mult_index
-            mat[rowIndex][1] = qn_index
-            mat[rowIndex][2] = xn_index
-            mat[rowIndex][-1] = save_index
+        for rowIndex in range(0, self.x_count):
+            p_mat[rowIndex][0] = mult_index
+            p_mat[rowIndex][1] = qi_index
+            p_mat[rowIndex][2] = xi_index
+            p_mat[rowIndex][-1] = save_index
 
-            xn_index += 1
-            qn_index += 1
+            xi_index += 1
+            qi_index += 1
             save_index += 1
+        a1_index = self.q_count + self.x_count + 1
+        a2_index = self.q_count + self.x_count + 2
+        for rowIndex in range(self.x_count, 2*self.x_count-1):
+            p_mat[rowIndex+self.x_count][0] = add_index
+            p_mat[rowIndex+self.x_count][1] = a1_index
+            p_mat[rowIndex+self.x_count][2] = a2_index
+            p_mat[rowIndex+self.x_count][-1] = save_index
 
-        last_save_index_plus1 = save_index
-        first_comp_value_index = self.x_count + self.q_count + 1
-        second_comp_value_index = first_comp_value_index + 1
-
-        if self.x_count > 1:
-            mat[self.x_count][0] = add_index
-            mat[self.x_count][1] = first_comp_value_index
-            mat[self.x_count][2] = second_comp_value_index
-            mat[self.x_count][-1] = last_save_index_plus1
-            n_comp_value_index = second_comp_value_index + 1
-            for rowIndex in range(self.x_count - 2):
-                mat[self.x_count + 1 + rowIndex][0] = add_index
-                mat[self.x_count + 1 + rowIndex][1] = last_save_index_plus1
-                mat[self.x_count + 1 + rowIndex][2] = n_comp_value_index
-                mat[self.x_count + 1 + rowIndex][-1] = last_save_index_plus1 + 1
-                last_save_index_plus1 += 1
-                n_comp_value_index += 1
-
-            last_save_index = last_save_index_plus1
-        else:
-            last_save_index = save_index - 1
+            a1_index = save_index
+            a2_index += 1
+            save_index += 1
 
         # neutral function index
         neutral_func_index = 1
+        a1_index = save_index
+        save_index += 1
+        for rowIndex in range(2*self.x_count-1, self.pm_row_count):
+            p_mat[rowIndex][0] = neutral_func_index
+            p_mat[rowIndex][1] = a1_index
+            p_mat[rowIndex][-1] = save_index
 
-        for rowIndex in range(2 * self.x_count - 1, self.pm_row_count):
-            mat[rowIndex][0] = neutral_func_index
-            mat[rowIndex][1] = last_save_index
-            # mat[rowIndex][2]   =  0
-            mat[rowIndex][-1] = last_save_index + 1
-            last_save_index += 1
-        return mat
+            a1_index = save_index
+            save_index += 1
+        return p_mat
 
     def decode(self, xi, q, mat):
         self.argument_vector[0:self.x_count] = xi.copy()

@@ -18,25 +18,24 @@ class SmallVariation:
         self.u_max = u_max
 
     def encode(self, pm_permitted_rows, pm_permitted_cols):
-        sv_row = np.zeros(3, dtype=int)
+        sv_row = np.zeros(4, dtype=int)
         pm_row_index = pm_permitted_rows[randrange(len(pm_permitted_rows))]
         pm_col_index = pm_permitted_cols[randrange(len(pm_permitted_cols))]
+        u_index = randrange(1, self.u_count+1)
 
-        sv_row[0] = pm_row_index
-        sv_row[1] = pm_col_index
+        sv_row[0] = u_index
+        sv_row[1] = pm_row_index
+        sv_row[2] = pm_col_index
 
-        pm_row_index -= 1
-        pm_col_index -= 1
-
-        if pm_col_index == 0:
+        if pm_col_index == 1:
             new_func_index = randrange(0, self.func_count)
-            sv_row[2] = new_func_index + 1
-        elif pm_col_index == self.pm_col_count-1:
+            sv_row[3] = new_func_index + 1
+        elif pm_col_index == self.pm_col_count:
             new_save_index = randrange(self.x_count + self.q_count, self.A_size)
-            sv_row[2] = new_save_index + 1
-        elif 0 < pm_col_index < self.pm_col_count-1:
+            sv_row[3] = new_save_index + 1
+        elif 1 < pm_col_index < self.pm_col_count:
             new_arg_index = randrange(0, self.x_count + self.q_count + pm_row_index)
-            sv_row[2] = new_arg_index + 1
+            sv_row[3] = new_arg_index + 1
         else:
             print('wrong col index in encode_sv', pm_col_index)
             assert False
