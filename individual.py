@@ -17,6 +17,7 @@ class Individual:
                             u_count, q_count, sv_mat_row_count, u_min, u_max, max_arg_count)
         self.sv_mat_row_count = sv_mat_row_count
         self.q_count = q_count
+        self.u_count = u_count
         self.q_min = q_min
         self.q_max = q_max
         self.pm_permitted_rows = pm_permitted_rows
@@ -24,8 +25,14 @@ class Individual:
         self.pm_col_count = pm_col_count
         self.pm_row_count = pm_row_count
 
+    def encode_basic_solution(self):
+        basic_solution_matrix = np.zeros((self.u_count, self.pm_row_count, self.pm_col_count), dtype=int)
+        for k in range(self.u_count):
+            basic_solution_matrix[k] = self.pm_object.encode_basic()
+
+
     def encode(self):
-        sv_mat = np.zeros((self.sv_mat_row_count, 3), dtype=int)
+        sv_mat = np.zeros((self.sv_mat_row_count, 4), dtype=int)
         for k in range(self.sv_mat_row_count):
             sv_mat[k] = self.small_variation_object.encode(self.pm_permitted_rows, self.pm_permitted_cols)
         q = self.coefficients_object.encode()

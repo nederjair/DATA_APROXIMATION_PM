@@ -27,8 +27,6 @@ class PM:
         self.u_min = u_min
         self.u_max = u_max
 
-        self.basic_solution = self.encode_basic()
-
     def encode_basic(self):
         p_mat = np.ones((self.pm_row_count, self.pm_col_count), dtype=int)
         # multiplication index
@@ -50,10 +48,10 @@ class PM:
         a1_index = self.q_count + self.x_count + 1
         a2_index = self.q_count + self.x_count + 2
         for rowIndex in range(self.x_count, 2*self.x_count-1):
-            p_mat[rowIndex+self.x_count][0] = add_index
-            p_mat[rowIndex+self.x_count][1] = a1_index
-            p_mat[rowIndex+self.x_count][2] = a2_index
-            p_mat[rowIndex+self.x_count][-1] = save_index
+            p_mat[rowIndex][0] = add_index
+            p_mat[rowIndex][1] = a1_index
+            p_mat[rowIndex][2] = a2_index
+            p_mat[rowIndex][-1] = save_index
 
             a1_index = save_index
             a2_index += 1
@@ -61,8 +59,7 @@ class PM:
 
         # neutral function index
         neutral_func_index = 1
-        a1_index = save_index
-        save_index += 1
+        a1_index = save_index - 1
         for rowIndex in range(2*self.x_count-1, self.pm_row_count):
             p_mat[rowIndex][0] = neutral_func_index
             p_mat[rowIndex][1] = a1_index
@@ -72,20 +69,20 @@ class PM:
             save_index += 1
         return p_mat
 
-    def decode(self, xi, q, mat):
-        self.argument_vector[0:self.x_count] = xi.copy()
-        self.argument_vector[self.x_count:self.x_count + self.q_count] = q.copy()
+    def decode(self, xi, q, p_mat):
+        self.argument_vector[0:self.q_count] = -1*q.copy()
+        self.argument_vector[self.q_count:self.q_count + self.x_count] = xi.copy()
         self.argument_vector[self.x_count + self.q_count:] = 0.0
 
         for rowIndex in range(0, self.pm_row_count):
-            function_index = mat[rowIndex][0] - 1
-            save_index = mat[rowIndex][-1] - 1
+            function_index = p_mat[rowIndex][0] - 1
+            save_index = p_mat[rowIndex][-1] - 1
             if 0 <= function_index < self.function_count and \
                     self.x_count + self.q_count <= save_index < self.x_count + self.q_count + self.pm_row_count:
                 func = self.function_list[function_index].method
                 func_arg_count = len(signature(func).parameters)
                 for col_index in range(1, func_arg_count + 1):
-                    arg_index = mat[rowIndex][col_index] - 1
+                    arg_index = p_mat[rowIndex][col_index] - 1
                     if 0 <= arg_index < self.argument_count:
                         current_arg = self.argument_vector[arg_index]
                     else:
@@ -107,21 +104,22 @@ class PM:
         self.argument_vector[-1] = clamp(self.argument_vector[-1], self.u_min, self.u_max)
         return self.argument_vector[-1]
 
-    def decode_symbol(self, q, mat):
+    def decode_symbol(self, q, p_mat):
         self.argument_vector_symbol = ['0' for _ in range(self.argument_count)]
-        self.argument_vector_symbol[0:self.x_count] = ['x' + str(k + 1) for k in range(self.x_count)]
-        self.argument_vector_symbol[self.x_count:self.x_count + self.q_count] = \
-            [str(round(q[k], 3)) for k in range(self.q_count)]
+        self.argument_vector_symbol[0:self.x_count] = \
+            [str(round(-1*q[k], 3)) for k in range(self.q_count)]
+        self.argument_vector_symbol[self.x_count:self.x_count + self.q_count] = ['x' + str(k + 1) for k in
+                                                                                 range(self.x_count)]
 
         for rowIndex in range(0, self.pm_row_count):
-            function_index = mat[rowIndex][0] - 1
-            save_index = mat[rowIndex][-1] - 1
+            function_index = p_mat[rowIndex][0] - 1
+            save_index = p_mat[rowIndex][-1] - 1
             if 0 <= function_index < self.function_count and \
                     self.x_count + self.q_count <= save_index < self.x_count + self.q_count + self.pm_row_count:
                 func = self.function_list[function_index].s_method
                 func_arg_count = len(signature(func).parameters)
                 for col_index in range(1, func_arg_count + 1):
-                    arg_index = mat[rowIndex][col_index] - 1
+                    arg_index = p_mat[rowIndex][col_index] - 1
                     if 0 <= arg_index < self.argument_count:
                         current_arg = self.argument_vector_symbol[arg_index]
                     else:
