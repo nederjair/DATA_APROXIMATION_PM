@@ -13,6 +13,9 @@ class Population:
         self.pm_col_count = pm_col_count
         self.pm_row_count = pm_row_count
 
+        self.u_count = u_count
+        self.x_count = x_count
+
         self.q_count = q_count
         self.q_min = q_min
         self.q_max = q_max
@@ -25,7 +28,7 @@ class Population:
                                             pm_permitted_cols)
 
     def encode(self, pop_size):
-        pop = np.zeros((pop_size, self.sv_mat_row_count, 3), dtype=int)
+        pop = np.zeros((pop_size, self.sv_mat_row_count, 4), dtype=int)
         pop_q = np.zeros((pop_size, self.q_count))
 
         for k in range(pop_size):
@@ -41,7 +44,7 @@ class Population:
 
     def calculate_y(self, pop_sv, pop_q, x, samples):
         pop_size, sv_mat_row_count, sv_mat_col_count = pop_sv.shape
-        y = np.zeros((pop_size, samples))
+        y = np.zeros((pop_size, self.u_count, samples))
         for k in range(pop_size):
             y[k] = self.individual_object.calculate_y(pop_sv[k], pop_q[k], x, samples)
         return y
@@ -80,7 +83,7 @@ class Population:
     def crossover_cycle(self, pop_sv, pop_q, x, y_target, samples, probabilities, children_return_count,
                         crossover_count):
         pop_new_size = crossover_count*children_return_count
-        pop_sv_new = np.zeros((pop_new_size, self.sv_mat_row_count, 3), dtype=int)
+        pop_sv_new = np.zeros((pop_new_size, self.sv_mat_row_count, 4), dtype=int)
         pop_q_new = np.zeros((pop_new_size, self.q_count))
         pop_scores_new = np.full(pop_new_size, np.inf)
         k = 0
@@ -126,7 +129,7 @@ class Population:
 
     def mutation_cycle(self, pop_sv, pop_q, x, y_target, samples, probabilities, mutation_count):
         pop_new_size = mutation_count
-        pop_sv_new = np.zeros((pop_new_size, self.sv_mat_row_count, 3), dtype=int)
+        pop_sv_new = np.zeros((pop_new_size, self.sv_mat_row_count, 4), dtype=int)
         pop_q_new = np.zeros((pop_new_size, self.q_count))
         scores_new = np.full(pop_new_size, np.inf)
         k = 0

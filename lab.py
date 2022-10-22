@@ -1,8 +1,10 @@
-from small_variation import SmallVariation
-from my_functions import synthesis_function_list
-from parse_matrix import PM
-from coefficients import Coefficients
-space = 10
+# from my_functions import synthesis_function_list
+import shelve
+from pathlib import Path
+
+import numpy as np
+
+'''space = 10
 x_count = 3
 q_count = 7
 u_count = 2
@@ -16,25 +18,39 @@ q_min = 0
 q_max = 10
 func_count = len(synthesis_function_list)
 pm_permitted_rows = [i for i in range(2*x_count, pm_row_count)]
-pm_permitted_cols = [1, 2, 3, 4]
+pm_permitted_cols = [1, 2, 3, 4]'''
+current_path = Path.cwd()
+live_reg_data_folder_path = current_path / Path('history_regression_data')
+history_data_folder_path = current_path / Path('live_regression_data')
+optimization_data_folder_path = current_path / Path('optimization')
 
-sv = SmallVariation(pm_row_count, pm_col_count, x_count, u_count, q_count, sv_mat_row_count, func_count, u_min, u_max)
-'''option = input('do you wish to continue?')
-while option == '':
-    print(sv.encode(pm_permitted_rows, pm_permitted_cols))
-    option = input('do you wish to continue?')
+reg_shelf_file_path = optimization_data_folder_path / Path('plot_x0_' + str(0))
+reg_shelf_file = shelve.open(str(reg_shelf_file_path))
+x_data_array = reg_shelf_file['x_data_array'][0]
+u_data_array = reg_shelf_file['u_data_array'][0]
+# x0 = reg_shelf_file['x0']
+reg_shelf_file.close()
+print(type(u_data_array))
+print(u_data_array.shape)
 
-print('End.')'''
+for x0_index in range(1, 4):
+    reg_shelf_file_path = optimization_data_folder_path / Path('plot_x0_' + str(x0_index))
+    reg_shelf_file = shelve.open(str(reg_shelf_file_path))
 
+    x_data_array = np.concatenate((x_data_array, reg_shelf_file['x_data_array'][0]), axis=1)
+    u_data_array = np.concatenate((u_data_array, reg_shelf_file['u_data_array'][0]), axis=1)
+    # x0 = np.concatenate((x0, reg_shelf_file['x0']), axis=None)
+    reg_shelf_file.close()
 
-pm_obj = PM(pm_row_count, pm_col_count, x_count, u_count, q_count, sv_mat_row_count, u_min, u_max, max_arg_count)
-q_obj = Coefficients(q_count, q_min, q_max)
-p_mat = pm_obj.encode_basic()
-q = q_obj.encode()
-option = input('press enter to continue')
-while option == '':
-    expression = pm_obj.decode_symbol(q, p_mat)
-    print(expression)
-    option = input('do you wish to continue?')
+print(type(u_data_array))
+print(u_data_array.shape)
 
-print('End.')
+reg_shelf_file = shelve.open(str(optimization_data_folder_path / Path('optimization')))
+reg_shelf_file['x_count'] = 3
+reg_shelf_file['u_count'] = 2
+reg_shelf_file['u_min'] = -10
+reg_shelf_file['u_max'] = 10
+reg_shelf_file['x_data'] = x_data_array
+reg_shelf_file['y_target'] = u_data_array
+reg_shelf_file.close()
+

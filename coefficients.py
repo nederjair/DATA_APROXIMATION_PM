@@ -1,5 +1,5 @@
-import numpy as np
 from random import uniform
+import numpy as np
 
 
 class Coefficients:
@@ -9,4 +9,7 @@ class Coefficients:
         self.q_max = q_max
 
     def encode(self):
-        return np.array([uniform(0, 1) * (self.q_max - self.q_min) + self.q_min for _ in range(self.q_count)])
+        q_vec = np.zeros(self.q_count)
+        for k in range(self.q_count):
+            q_vec[k] = uniform(0, 1) * (self.q_max - self.q_min) + self.q_min
+        return q_vec

@@ -7,7 +7,6 @@ import numpy as np
 from pathlib import Path
 from tkinter.filedialog import askopenfilename
 from tkinter import messagebox
-from time import sleep
 from tkinter import CENTER
 from tkinter import DISABLED
 from tkinter import NORMAL
@@ -19,6 +18,8 @@ customtkinter.set_default_color_theme("dark-blue")  # Themes: blue (default), da
 
 class Gui:
     def __init__(self):
+        # self.sr_object =
+        self.continue_flag = True
         self.fm = FileManager()
         self.current_path = Path.cwd()
         self.live_reg_data_folder_path = self.current_path / Path('history_regression_data')
@@ -45,6 +46,9 @@ class Gui:
         self.start_from_scratch_button, self.resume_button, self.stop_button = self.create_buttons(self.button_frame)
         # #####################################SECONDARY WINDOW#############################
 
+    def stop_simulation(self):
+        self.continue_flag = False
+
     @staticmethod
     def configure_widget(widget, row_list, col_list, row_weight_list, col_weight_list):
         for k in range(len(row_list)):
@@ -57,7 +61,7 @@ class Gui:
         # root
         root = customtkinter.CTk()  # create CTk window like you do with the Tk window
         root.title('Symbolic Regression')
-        root.state('zoomed')
+        # root.state('zoomed')
         root.geometry("800x800")
         return root
         
@@ -112,6 +116,7 @@ class Gui:
         button_frame = customtkinter.CTkFrame(parent_frame)
         button_frame.grid(row=1, column=0, sticky='nsew')
         return button_frame
+
     @staticmethod
     def set_stop_flag_to_true(sr):
         sr.stop_flag = True
@@ -130,7 +135,7 @@ class Gui:
 
         # stop button
         stop_button = customtkinter.CTkButton(parent_frame, text='stop simulation', state=DISABLED,
-                                              command=self.set_stop_flag_to_true)
+                                              command=self.stop_simulation)
         stop_button.grid(row=2, column=0, sticky='nsew', padx=10, pady=10)
 
         self.configure_widget(parent_frame, row_list=[0, 1, 2], col_list=[0], row_weight_list=[1, 1, 1],
@@ -445,6 +450,42 @@ class Gui:
         self.main_loop(sr, pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys,
                        elite_expressions, current_generation, max_gens, reset_max_attempts, current_attempt,
                        simulation_best_score, generation_best_score[0], best_expression[0])
+
+    def main_loop(self, sr, pop_sv, pop_q, scores, probabilities, elite_svs, elite_qs, elite_scores, elite_ys,
+                  elite_expressions, current_generation, max_gens, reset_max_attempts, current_attempt,
+                  simulation_best_score, generation_best_score, best_expression):
+        if current_generation < max_gens and self.continue_flag:
+            (pop_sv, pop_q, probabilities, elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions,
+             current_generation, reset_max_attempts, current_attempt, simulation_best_score) = \
+                sr.main_loop(pop_sv, pop_q, probabilities, elite_svs, elite_qs, elite_scores, elite_ys,
+                             elite_expressions, current_generation, reset_max_attempts, current_attempt,
+                             simulation_best_score)
+
+            self.root.after(ms=10, func=lambda: self.main_loop(sr, pop_sv, pop_q, scores, probabilities, elite_svs,
+                                                               elite_qs, elite_scores, elite_ys, elite_expressions,
+                                                               current_generation, max_gens, reset_max_attempts,
+                                                               current_attempt, simulation_best_score,
+                                                               generation_best_score, best_expression))
+        else:
+
+            print('main loop finished, reached max gens')
+            print('saving resume data to a zip file')
+            sr.save_resume_file(elite_svs, elite_qs, elite_scores, elite_ys, elite_expressions, pop_sv, pop_q, scores,
+                                probabilities)
+            u_data_array = elite_individuals
+            x_data_array = optimizer.population_obj.calculate_states(u_data_array, optimizer.x0, optimizer.h)
+            optimizer.create_plot_file(x_data_array, u_data_array)
+            optimizer.backup_all_data_to_zip(self.resume_zip_file_path, first_time=self.first_time)
+            sr.backup_resume_data_to_zip()
+            print('Program Done.')
+            print('main loop finished, reached max gens')
+            print('saving resume data to a zip file')
+            self.plot_button.configure(state=NORMAL)
+            self.start_from_scratch_button.configure(state=NORMAL)
+            self.stop_button.configure(state=DISABLED)
+            self.resume_button.configure(state=NORMAL)
+            self.continue_flag = True
+            print('Program Done.')
 
     def resume(self, top_window, max_gens_entry, reset_gens_entry):
         # get simulation parameters from the user
